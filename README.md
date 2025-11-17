@@ -102,4 +102,3 @@ src/
 ## License
 
 MIT
-
