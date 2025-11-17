@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Box,
   Typography,
@@ -14,26 +14,27 @@ import {
   TextField,
   Chip,
   MenuItem,
+  CircularProgress,
 } from '@mui/material'
 import { Add, Edit, Delete, Visibility, Assignment } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import PatientForm from '../components/forms/PatientForm'
-import {
-  getAllPatients,
-  getPatientsByDoctor,
-  addPatient,
-  updatePatient,
-  deletePatient,
-  assignPatientToDoctor,
-  getAllDoctors,
-} from '../services/userService'
+import { usePatients } from '../hooks/usePatients'
+import { useDoctors } from '../hooks/useDoctors'
 import { useAuth } from '../context/AuthContext'
 
 export default function Patients() {
   const { currentUser, userRole } = useAuth()
   const navigate = useNavigate()
-  const [patients, setPatients] = useState([])
-  const [loading, setLoading] = useState(true)
+  const {
+    patients,
+    loading,
+    createPatient,
+    updatePatient,
+    deletePatient,
+    assignPatient,
+  } = usePatients()
+  const { doctors } = useDoctors({ autoLoad: userRole === 'admin' })
   const [formOpen, setFormOpen] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -41,35 +42,6 @@ export default function Patients() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const [patientToAssign, setPatientToAssign] = useState(null)
   const [selectedDoctor, setSelectedDoctor] = useState('')
-  const [doctors, setDoctors] = useState([])
-
-  useEffect(() => {
-    loadPatients()
-    if (userRole === 'admin') {
-      loadDoctors()
-    }
-  }, [])
-
-  const loadDoctors = async () => {
-    const result = await getAllDoctors()
-    if (result.success) {
-      setDoctors(result.data)
-    }
-  }
-
-  const loadPatients = async () => {
-    setLoading(true)
-    let result
-    if (userRole === 'doctor') {
-      result = await getPatientsByDoctor(currentUser.uid)
-    } else {
-      result = await getAllPatients()
-    }
-    if (result.success) {
-      setPatients(result.data)
-    }
-    setLoading(false)
-  }
 
   const handleAdd = () => {
     setSelectedPatient(null)
@@ -88,10 +60,7 @@ export default function Patients() {
 
   const confirmDelete = async () => {
     if (patientToDelete) {
-      const result = await deletePatient(patientToDelete.id)
-      if (result.success) {
-        loadPatients()
-      }
+      await deletePatient(patientToDelete.id)
     }
     setDeleteDialogOpen(false)
     setPatientToDelete(null)
@@ -102,13 +71,12 @@ export default function Patients() {
     if (selectedPatient) {
       result = await updatePatient(selectedPatient.id, formData)
     } else {
-      result = await addPatient(formData)
+      result = await createPatient(formData)
     }
 
     if (result.success) {
       setFormOpen(false)
       setSelectedPatient(null)
-      loadPatients()
     }
   }
 
@@ -128,7 +96,9 @@ export default function Patients() {
       </Box>
 
       {loading ? (
-        <Typography>Loading...</Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+          <CircularProgress />
+        </Box>
       ) : (
         <Grid container spacing={3}>
           {patients.map((patient) => (
@@ -256,7 +226,7 @@ export default function Patients() {
             variant="contained"
             onClick={async () => {
               if (patientToAssign) {
-                const result = await assignPatientToDoctor(
+                const result = await assignPatient(
                   patientToAssign.id,
                   selectedDoctor || null
                 )
@@ -264,7 +234,6 @@ export default function Patients() {
                   setAssignDialogOpen(false)
                   setPatientToAssign(null)
                   setSelectedDoctor('')
-                  loadPatients()
                 }
               }
             }}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Box,
   Typography,
@@ -11,40 +11,27 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Chip,
+  CircularProgress,
 } from '@mui/material'
 import { Add, Edit, Delete } from '@mui/icons-material'
 import DoctorForm from '../components/forms/DoctorForm'
-import {
-  getAllDoctors,
-  addDoctor,
-  updateDoctor,
-  deleteDoctor,
-} from '../services/userService'
+import { useDoctors } from '../hooks/useDoctors'
 import { useAuth } from '../context/AuthContext'
 
 export default function Doctors() {
   const { userRole } = useAuth()
-  const [doctors, setDoctors] = useState([])
-  const [loading, setLoading] = useState(true)
+  const {
+    doctors,
+    loading,
+    createDoctor,
+    updateDoctor,
+    deleteDoctor,
+  } = useDoctors()
   const [formOpen, setFormOpen] = useState(false)
   const [selectedDoctor, setSelectedDoctor] = useState(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [doctorToDelete, setDoctorToDelete] = useState(null)
-
-  useEffect(() => {
-    loadDoctors()
-  }, [])
-
-  const loadDoctors = async () => {
-    setLoading(true)
-    const result = await getAllDoctors()
-    if (result.success) {
-      setDoctors(result.data)
-    }
-    setLoading(false)
-  }
 
   const handleAdd = () => {
     setSelectedDoctor(null)
@@ -63,10 +50,7 @@ export default function Doctors() {
 
   const confirmDelete = async () => {
     if (doctorToDelete) {
-      const result = await deleteDoctor(doctorToDelete.id)
-      if (result.success) {
-        loadDoctors()
-      }
+      await deleteDoctor(doctorToDelete.id)
     }
     setDeleteDialogOpen(false)
     setDoctorToDelete(null)
@@ -77,13 +61,12 @@ export default function Doctors() {
     if (selectedDoctor) {
       result = await updateDoctor(selectedDoctor.id, formData)
     } else {
-      result = await addDoctor(formData)
+      result = await createDoctor(formData)
     }
 
     if (result.success) {
       setFormOpen(false)
       setSelectedDoctor(null)
-      loadDoctors()
     }
   }
 
@@ -103,7 +86,9 @@ export default function Doctors() {
       </Box>
 
       {loading ? (
-        <Typography>Loading...</Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+          <CircularProgress />
+        </Box>
       ) : (
         <Grid container spacing={3}>
           {doctors.map((doctor) => (

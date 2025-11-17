@@ -15,80 +15,71 @@ import PatientHealthChart from '../components/charts/PatientHealthChart'
 import DailyHealthStatus from '../components/charts/DailyHealthStatus'
 import DailyHealthList from '../components/charts/DailyHealthList'
 import HealthDataForm from '../components/charts/HealthDataForm'
-import {
-  getAllPatients,
-  getPatientHealthData,
-  addPatientHealthData,
-  getPatientByEmail,
-} from '../services/userService'
+import { usePatients, usePatientByEmail } from '../hooks/usePatients'
+import { usePatientHealthData } from '../hooks/usePatientHealthData'
 import { useAuth } from '../context/AuthContext'
 
 export default function Charts() {
   const { patientId: urlPatientId } = useParams()
   const navigate = useNavigate()
   const { currentUser, userRole } = useAuth()
-  const [patients, setPatients] = useState([])
   const [selectedPatientId, setSelectedPatientId] = useState(urlPatientId || '')
-  const [healthData, setHealthData] = useState([])
-  const [loading, setLoading] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
 
-  useEffect(() => {
-    loadPatients()
-  }, [])
+  // For patients: get their own record by email
+  const {
+    patient: patientByEmail,
+    loading: loadingPatientByEmail,
+  } = usePatientByEmail(
+    userRole === 'patient' ? currentUser?.email : null,
+    userRole === 'patient'
+  )
 
+  // For doctors/admins: get all patients
+  const { patients: allPatients } = usePatients({
+    autoLoad: userRole !== 'patient',
+  })
+
+  // Health data for selected patient
+  const {
+    healthData,
+    loading: loadingHealthData,
+    addHealthData,
+  } = usePatientHealthData(selectedPatientId, { autoLoad: !!selectedPatientId })
+
+  // Determine which patients list to use
+  const patients = userRole === 'patient'
+    ? (patientByEmail ? [patientByEmail] : [])
+    : allPatients
+
+  // Set selected patient ID when patient data loads
   useEffect(() => {
-    if (selectedPatientId) {
-      // Verify patient can only access their own data
-      if (userRole === 'patient') {
-        const patient = patients.find((p) => p.id === selectedPatientId)
-        if (patient && patient.email !== currentUser.email) {
-          // Patient trying to access another patient's data - redirect
-          navigate('/charts')
-          return
-        }
+    if (userRole === 'patient' && patientByEmail) {
+      setSelectedPatientId(patientByEmail.id)
+    } else if (userRole !== 'patient' && urlPatientId && !selectedPatientId) {
+      setSelectedPatientId(urlPatientId)
+    }
+  }, [userRole, patientByEmail, urlPatientId, selectedPatientId])
+
+  // Verify patient can only access their own data
+  useEffect(() => {
+    if (selectedPatientId && userRole === 'patient') {
+      const patient = patients.find((p) => p.id === selectedPatientId)
+      if (patient && patient.email !== currentUser?.email) {
+        // Patient trying to access another patient's data - redirect
+        navigate('/charts', { replace: true })
       }
-      loadHealthData()
     }
   }, [selectedPatientId, userRole, currentUser, patients, navigate])
 
-  const loadPatients = async () => {
-    if (userRole === 'patient') {
-      // Patients can only see their own data
-      const result = await getPatientByEmail(currentUser.email)
-      if (result.success) {
-        setSelectedPatientId(result.data.id)
-        setPatients([result.data])
-      }
-    } else {
-      // Doctors and admins can see all patients
-      const result = await getAllPatients()
-      if (result.success) {
-        setPatients(result.data)
-        if (urlPatientId && !selectedPatientId) {
-          setSelectedPatientId(urlPatientId)
-        }
-      }
-    }
-  }
-
-  const loadHealthData = async () => {
-    if (!selectedPatientId) return
-    setLoading(true)
-    const result = await getPatientHealthData(selectedPatientId)
-    if (result.success) {
-      setHealthData(result.data)
-    }
-    setLoading(false)
-  }
-
   const handleAddData = async (formData) => {
-    const result = await addPatientHealthData(selectedPatientId, formData)
+    const result = await addHealthData(formData)
     if (result.success) {
       setFormOpen(false)
-      loadHealthData()
     }
   }
+
+  const loading = loadingPatientByEmail || loadingHealthData
 
   const selectedPatient = patients.find((p) => p.id === selectedPatientId)
 
@@ -150,7 +141,7 @@ export default function Charts() {
           ) : (
             <>
               {/* Daily Status Card - Show for patients prominently */}
-              {userRole === 'patient' && (
+              {userRole === 'patient' && healthData.length > 0 && (
                 <DailyHealthStatus healthData={healthData} />
               )}
               
@@ -163,7 +154,7 @@ export default function Charts() {
               </Box>
 
               {/* Daily History Table */}
-              {userRole === 'patient' && (
+              {userRole === 'patient' && healthData.length > 0 && (
                 <DailyHealthList healthData={healthData} />
               )}
             </>

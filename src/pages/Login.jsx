@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Container,
@@ -22,8 +22,14 @@ export default function Login() {
   const { currentUser } = useAuth()
 
   // Redirect if already logged in
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [currentUser, navigate])
+
+  // Don't render if already logged in
   if (currentUser) {
-    navigate('/dashboard')
     return null
   }
 
@@ -170,7 +176,7 @@ export default function Login() {
                 {loading ? 'Logging in...' : 'Login'}
               </Button>
               <Typography variant="body2" align="center" color="text.secondary">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <Link
                   to="/register"
                   style={{
