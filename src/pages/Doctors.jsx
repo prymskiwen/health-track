@@ -3,27 +3,17 @@ import {
   Box,
   Typography,
   Button,
-  Card,
-  CardContent,
-  Grid,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Chip,
   CircularProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
 } from '@mui/material'
-import { Add, Edit, Delete } from '@mui/icons-material'
+import { Add } from '@mui/icons-material'
 import DoctorForm from '../components/forms/DoctorForm'
 import ViewToggle from '../components/common/ViewToggle'
+import DoctorsGrid from '../components/doctors/DoctorsGrid'
+import DoctorsTable from '../components/doctors/DoctorsTable'
 import { useDoctors } from '../hooks/useDoctors'
 import { useAuth } from '../context/AuthContext'
 
@@ -79,108 +69,6 @@ export default function Doctors() {
     }
   }
 
-  const renderGridView = () => (
-    <Grid container spacing={3}>
-      {doctors.map((doctor) => (
-        <Grid item xs={12} sm={6} md={4} key={doctor.id}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                {doctor.name}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {doctor.email}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {doctor.phone}
-              </Typography>
-              <Chip
-                label={doctor.specialty}
-                size="small"
-                sx={{ mt: 1, mb: 1 }}
-              />
-              <Typography variant="body2" gutterBottom>
-                Experience: {doctor.experience} years
-              </Typography>
-              <Typography variant="body2" gutterBottom>
-                {doctor.qualification}
-              </Typography>
-              <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                <IconButton
-                  size="small"
-                  color="primary"
-                  onClick={() => handleEdit(doctor)}
-                >
-                  <Edit />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => handleDelete(doctor)}
-                >
-                  <Delete />
-                </IconButton>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      ))}
-    </Grid>
-  )
-
-  const renderTableView = () => (
-    <TableContainer component={Paper}>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Name</TableCell>
-            <TableCell>Email</TableCell>
-            <TableCell>Phone</TableCell>
-            <TableCell>Specialty</TableCell>
-            <TableCell>Experience</TableCell>
-            <TableCell>Qualification</TableCell>
-            <TableCell align="right">Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {doctors.map((doctor) => (
-            <TableRow key={doctor.id} hover>
-              <TableCell>
-                <Typography variant="body2" fontWeight={600}>
-                  {doctor.name}
-                </Typography>
-              </TableCell>
-              <TableCell>{doctor.email}</TableCell>
-              <TableCell>{doctor.phone}</TableCell>
-              <TableCell>
-                <Chip label={doctor.specialty} size="small" />
-              </TableCell>
-              <TableCell>{doctor.experience} years</TableCell>
-              <TableCell>{doctor.qualification}</TableCell>
-              <TableCell align="right">
-                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                  <IconButton
-                    size="small"
-                    color="primary"
-                    onClick={() => handleEdit(doctor)}
-                  >
-                    <Edit />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => handleDelete(doctor)}
-                  >
-                    <Delete />
-                  </IconButton>
-                </Box>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  )
 
   return (
     <Box>
@@ -211,7 +99,19 @@ export default function Doctors() {
           <Typography color="text.secondary">No doctors found</Typography>
         </Box>
       ) : (
-        viewMode === 'grid' ? renderGridView() : renderTableView()
+        viewMode === 'grid' ? (
+          <DoctorsGrid
+            doctors={doctors}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        ) : (
+          <DoctorsTable
+            doctors={doctors}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        )
       )}
 
       <DoctorForm
