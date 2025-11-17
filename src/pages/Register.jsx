@@ -63,23 +63,94 @@ export default function Register() {
   }
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Card sx={{ width: '100%' }}>
-          <CardContent sx={{ p: 4 }}>
-            <Typography variant="h4" component="h1" gutterBottom align="center">
-              Register
-            </Typography>
-            <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+        position: 'relative',
+        overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          width: '500px',
+          height: '500px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%)',
+          top: '-250px',
+          right: '-250px',
+        },
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          width: '400px',
+          height: '400px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(236, 72, 153, 0.1) 0%, transparent 70%)',
+          bottom: '-200px',
+          left: '-200px',
+        },
+      }}
+    >
+      <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
+        <Card
+          sx={{
+            width: '100%',
+            background: 'rgba(30, 41, 59, 0.8)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+          }}
+        >
+          <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
+            <Box sx={{ textAlign: 'center', mb: 4 }}>
+              <Box
+                sx={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 3,
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontWeight: 700,
+                  fontSize: '2rem',
+                  mb: 2,
+                  boxShadow: '0 8px 24px rgba(99, 102, 241, 0.4)',
+                }}
+              >
+                H
+              </Box>
+              <Typography
+                variant="h4"
+                component="h1"
+                gutterBottom
+                sx={{
+                  fontWeight: 700,
+                  background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  mb: 1,
+                }}
+              >
+                Create Account
+              </Typography>
+            </Box>
+            <Box component="form" onSubmit={handleSubmit}>
               {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
+                <Alert
+                  severity="error"
+                  sx={{
+                    mb: 3,
+                    borderRadius: 2,
+                    bgcolor: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                  }}
+                >
                   {error}
                 </Alert>
               )}
@@ -90,7 +161,7 @@ export default function Register() {
                 value={formData.name}
                 onChange={handleChange}
                 required
-                sx={{ mb: 2 }}
+                sx={{ mb: 2.5 }}
               />
               <TextField
                 fullWidth
@@ -100,7 +171,7 @@ export default function Register() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                sx={{ mb: 2 }}
+                sx={{ mb: 2.5 }}
               />
               <TextField
                 fullWidth
@@ -110,10 +181,11 @@ export default function Register() {
                 value={formData.role}
                 onChange={handleChange}
                 required
-                sx={{ mb: 2 }}
+                sx={{ mb: 2.5 }}
               >
                 <MenuItem value="patient">Patient</MenuItem>
                 <MenuItem value="doctor">Doctor</MenuItem>
+                <MenuItem value="admin">Admin</MenuItem>
               </TextField>
               <TextField
                 fullWidth
@@ -123,7 +195,7 @@ export default function Register() {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                sx={{ mb: 2 }}
+                sx={{ mb: 2.5 }}
               />
               <TextField
                 fullWidth
@@ -133,7 +205,7 @@ export default function Register() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
-                sx={{ mb: 2 }}
+                sx={{ mb: 3 }}
               />
               <Button
                 type="submit"
@@ -141,21 +213,33 @@ export default function Register() {
                 variant="contained"
                 size="large"
                 disabled={loading}
-                sx={{ mb: 2 }}
+                sx={{
+                  mb: 2,
+                  py: 1.5,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                }}
               >
                 {loading ? 'Registering...' : 'Register'}
               </Button>
-              <Typography variant="body2" align="center">
+              <Typography variant="body2" align="center" color="text.secondary">
                 Already have an account?{' '}
-                <Link to="/login" style={{ textDecoration: 'none' }}>
+                <Link
+                  to="/login"
+                  style={{
+                    textDecoration: 'none',
+                    color: '#818cf8',
+                    fontWeight: 600,
+                  }}
+                >
                   Login here
                 </Link>
               </Typography>
             </Box>
           </CardContent>
         </Card>
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   )
 }
 

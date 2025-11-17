@@ -152,6 +152,24 @@ export const getPatientsByDoctor = async (doctorId) => {
   }
 }
 
+// Get patient by user email (for patients to find their own record)
+export const getPatientByEmail = async (email) => {
+  try {
+    const q = query(
+      collection(db, 'patients'),
+      where('email', '==', email)
+    )
+    const querySnapshot = await getDocs(q)
+    if (!querySnapshot.empty) {
+      const patientDoc = querySnapshot.docs[0]
+      return { success: true, data: { id: patientDoc.id, ...patientDoc.data() } }
+    }
+    return { success: false, error: 'Patient not found' }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+
 // Patient Health Data
 export const addPatientHealthData = async (patientId, healthData) => {
   try {
@@ -178,6 +196,34 @@ export const getPatientHealthData = async (patientId) => {
       ...doc.data(),
     }))
     return { success: true, data: healthData }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+
+// Assign patient to doctor (Admin function)
+export const assignPatientToDoctor = async (patientId, doctorId) => {
+  try {
+    await updateDoc(doc(db, 'patients', patientId), {
+      assignedDoctor: doctorId,
+      updatedAt: new Date().toISOString(),
+    })
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+
+// Get all users (for admin)
+export const getAllUsers = async () => {
+  try {
+    const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'))
+    const querySnapshot = await getDocs(q)
+    const users = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }))
+    return { success: true, data: users }
   } catch (error) {
     return { success: false, error: error.message }
   }

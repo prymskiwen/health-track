@@ -22,8 +22,10 @@ import {
   updateDoctor,
   deleteDoctor,
 } from '../services/userService'
+import { useAuth } from '../context/AuthContext'
 
 export default function Doctors() {
+  const { userRole } = useAuth()
   const [doctors, setDoctors] = useState([])
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
@@ -89,13 +91,15 @@ export default function Doctors() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4">Doctors</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleAdd}
-        >
-          Add Doctor
-        </Button>
+        {(userRole === 'doctor' || userRole === 'admin') && (
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleAdd}
+          >
+            Add Doctor
+          </Button>
+        )}
       </Box>
 
       {loading ? (

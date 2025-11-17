@@ -12,14 +12,21 @@ import {
 } from '@mui/material'
 import { ArrowBack, Add } from '@mui/icons-material'
 import PatientHealthChart from '../components/charts/PatientHealthChart'
+import DailyHealthStatus from '../components/charts/DailyHealthStatus'
+import DailyHealthList from '../components/charts/DailyHealthList'
 import HealthDataForm from '../components/charts/HealthDataForm'
-import { getAllPatients, getPatientHealthData, addPatientHealthData } from '../services/userService'
+import {
+  getAllPatients,
+  getPatientHealthData,
+  addPatientHealthData,
+  getPatientByEmail,
+} from '../services/userService'
 import { useAuth } from '../context/AuthContext'
 
 export default function Charts() {
   const { patientId: urlPatientId } = useParams()
   const navigate = useNavigate()
-  const { userRole } = useAuth()
+  const { currentUser, userRole } = useAuth()
   const [patients, setPatients] = useState([])
   const [selectedPatientId, setSelectedPatientId] = useState(urlPatientId || '')
   const [healthData, setHealthData] = useState([])
@@ -32,16 +39,35 @@ export default function Charts() {
 
   useEffect(() => {
     if (selectedPatientId) {
+      // Verify patient can only access their own data
+      if (userRole === 'patient') {
+        const patient = patients.find((p) => p.id === selectedPatientId)
+        if (patient && patient.email !== currentUser.email) {
+          // Patient trying to access another patient's data - redirect
+          navigate('/charts')
+          return
+        }
+      }
       loadHealthData()
     }
-  }, [selectedPatientId])
+  }, [selectedPatientId, userRole, currentUser, patients, navigate])
 
   const loadPatients = async () => {
-    const result = await getAllPatients()
-    if (result.success) {
-      setPatients(result.data)
-      if (urlPatientId && !selectedPatientId) {
-        setSelectedPatientId(urlPatientId)
+    if (userRole === 'patient') {
+      // Patients can only see their own data
+      const result = await getPatientByEmail(currentUser.email)
+      if (result.success) {
+        setSelectedPatientId(result.data.id)
+        setPatients([result.data])
+      }
+    } else {
+      // Doctors and admins can see all patients
+      const result = await getAllPatients()
+      if (result.success) {
+        setPatients(result.data)
+        if (urlPatientId && !selectedPatientId) {
+          setSelectedPatientId(urlPatientId)
+        }
       }
     }
   }
@@ -70,15 +96,19 @@ export default function Charts() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Button
-            startIcon={<ArrowBack />}
-            onClick={() => navigate('/patients')}
-          >
-            Back
-          </Button>
-          <Typography variant="h4">Patient Health Charts</Typography>
+          {userRole !== 'patient' && (
+            <Button
+              startIcon={<ArrowBack />}
+              onClick={() => navigate('/patients')}
+            >
+              Back
+            </Button>
+          )}
+          <Typography variant="h4">
+            {userRole === 'patient' ? 'My Health Charts' : 'Patient Health Charts'}
+          </Typography>
         </Box>
-        {userRole === 'doctor' && selectedPatientId && (
+        {(userRole === 'doctor' || userRole === 'admin') && selectedPatientId && (
           <Button
             variant="contained"
             startIcon={<Add />}
@@ -89,7 +119,7 @@ export default function Charts() {
         )}
       </Box>
 
-      {userRole === 'doctor' && (
+      {(userRole === 'doctor' || userRole === 'admin') && (
         <FormControl fullWidth sx={{ mb: 3, maxWidth: 400 }}>
           <InputLabel>Select Patient</InputLabel>
           <Select
@@ -110,7 +140,7 @@ export default function Charts() {
         <>
           {selectedPatient && (
             <Typography variant="h6" gutterBottom>
-              Patient: {selectedPatient.name}
+              {userRole === 'patient' ? 'My Health Data' : `Patient: ${selectedPatient.name}`}
             </Typography>
           )}
           {loading ? (
@@ -118,15 +148,32 @@ export default function Charts() {
               <CircularProgress />
             </Box>
           ) : (
-            <PatientHealthChart
-              data={healthData}
-              title="Health Metrics Over Time"
-            />
+            <>
+              {/* Daily Status Card - Show for patients prominently */}
+              {userRole === 'patient' && (
+                <DailyHealthStatus healthData={healthData} />
+              )}
+              
+              {/* Historical Chart */}
+              <Box sx={{ mt: userRole === 'patient' ? 3 : 0 }}>
+                <PatientHealthChart
+                  data={healthData}
+                  title={userRole === 'patient' ? 'Health Trends Over Time' : 'Health Metrics Over Time'}
+                />
+              </Box>
+
+              {/* Daily History Table */}
+              {userRole === 'patient' && (
+                <DailyHealthList healthData={healthData} />
+              )}
+            </>
           )}
         </>
       ) : (
         <Typography color="text.secondary">
-          Please select a patient to view health charts
+          {userRole === 'patient'
+            ? 'Loading your health data...'
+            : 'Please select a patient to view health charts'}
         </Typography>
       )}
 

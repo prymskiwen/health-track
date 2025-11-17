@@ -13,8 +13,9 @@ import {
   DialogActions,
   TextField,
   Chip,
+  MenuItem,
 } from '@mui/material'
-import { Add, Edit, Delete, Visibility } from '@mui/icons-material'
+import { Add, Edit, Delete, Visibility, Assignment } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import PatientForm from '../components/forms/PatientForm'
 import {
@@ -23,6 +24,8 @@ import {
   addPatient,
   updatePatient,
   deletePatient,
+  assignPatientToDoctor,
+  getAllDoctors,
 } from '../services/userService'
 import { useAuth } from '../context/AuthContext'
 
@@ -35,10 +38,24 @@ export default function Patients() {
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [patientToDelete, setPatientToDelete] = useState(null)
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false)
+  const [patientToAssign, setPatientToAssign] = useState(null)
+  const [selectedDoctor, setSelectedDoctor] = useState('')
+  const [doctors, setDoctors] = useState([])
 
   useEffect(() => {
     loadPatients()
+    if (userRole === 'admin') {
+      loadDoctors()
+    }
   }, [])
+
+  const loadDoctors = async () => {
+    const result = await getAllDoctors()
+    if (result.success) {
+      setDoctors(result.data)
+    }
+  }
 
   const loadPatients = async () => {
     setLoading(true)
@@ -99,7 +116,7 @@ export default function Patients() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4">Patients</Typography>
-        {userRole === 'doctor' && (
+        {(userRole === 'doctor' || userRole === 'admin') && (
           <Button
             variant="contained"
             startIcon={<Add />}
@@ -134,6 +151,11 @@ export default function Patients() {
                   <Typography variant="body2" gutterBottom>
                     {patient.address}
                   </Typography>
+                  {patient.assignedDoctor && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                      Assigned Doctor: {doctors.find(d => d.id === patient.assignedDoctor)?.name || 'Unknown'}
+                    </Typography>
+                  )}
                   <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
                     <IconButton
                       size="small"
@@ -142,8 +164,21 @@ export default function Patients() {
                     >
                       <Visibility />
                     </IconButton>
-                    {userRole === 'doctor' && (
+                    {(userRole === 'doctor' || userRole === 'admin') && (
                       <>
+                        {userRole === 'admin' && (
+                          <IconButton
+                            size="small"
+                            color="secondary"
+                            onClick={() => {
+                              setPatientToAssign(patient)
+                              setSelectedDoctor(patient.assignedDoctor || '')
+                              setAssignDialogOpen(true)
+                            }}
+                          >
+                            <Assignment />
+                          </IconButton>
+                        )}
                         <IconButton
                           size="small"
                           color="primary"
@@ -151,13 +186,15 @@ export default function Patients() {
                         >
                           <Edit />
                         </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDelete(patient)}
-                        >
-                          <Delete />
-                        </IconButton>
+                        {userRole === 'admin' && (
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDelete(patient)}
+                          >
+                            <Delete />
+                          </IconButton>
+                        )}
                       </>
                     )}
                   </Box>
@@ -190,6 +227,49 @@ export default function Patients() {
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button onClick={confirmDelete} color="error" variant="contained">
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={assignDialogOpen} onClose={() => setAssignDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Assign Patient to Doctor</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            select
+            label="Select Doctor"
+            value={selectedDoctor}
+            onChange={(e) => setSelectedDoctor(e.target.value)}
+            sx={{ mt: 2 }}
+          >
+            <MenuItem value="">None</MenuItem>
+            {doctors.map((doctor) => (
+              <MenuItem key={doctor.id} value={doctor.id}>
+                {doctor.name} - {doctor.specialty}
+              </MenuItem>
+            ))}
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAssignDialogOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              if (patientToAssign) {
+                const result = await assignPatientToDoctor(
+                  patientToAssign.id,
+                  selectedDoctor || null
+                )
+                if (result.success) {
+                  setAssignDialogOpen(false)
+                  setPatientToAssign(null)
+                  setSelectedDoctor('')
+                  loadPatients()
+                }
+              }
+            }}
+          >
+            Assign
           </Button>
         </DialogActions>
       </Dialog>

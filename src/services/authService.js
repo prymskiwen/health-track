@@ -24,7 +24,7 @@ export const registerUser = async (email, password, displayName, role) => {
       uid: user.uid,
       email: user.email,
       displayName,
-      role, // 'doctor' or 'patient'
+      role, // 'admin', 'doctor', or 'patient'
       createdAt: new Date().toISOString(),
     })
 

@@ -17,21 +17,37 @@ import {
 } from '@mui/material'
 import { Send } from '@mui/icons-material'
 import { subscribeToMessages, sendMessage } from '../services/chatService'
-import { getAllDoctors, getAllPatients } from '../services/userService'
+import {
+  getAllDoctors,
+  getAllPatients,
+  getPatientByEmail,
+  getDoctor,
+  getAllUsers,
+} from '../services/userService'
+import { getUserConnections } from '../services/connectionService'
 import { useAuth } from '../context/AuthContext'
 import { format } from 'date-fns'
+import { useSearchParams } from 'react-router-dom'
 
 export default function Chat() {
   const { currentUser, userRole } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
-  const [selectedUser, setSelectedUser] = useState('')
+  const [selectedUser, setSelectedUser] = useState(searchParams.get('userId') || '')
   const [users, setUsers] = useState([])
   const messagesEndRef = useRef(null)
 
   useEffect(() => {
     loadUsers()
   }, [])
+
+  useEffect(() => {
+    const userId = searchParams.get('userId')
+    if (userId) {
+      setSelectedUser(userId)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (selectedUser) {
@@ -51,12 +67,87 @@ export default function Chat() {
   }, [messages])
 
   const loadUsers = async () => {
+    // First try to load connections
+    const connectionsResult = await getUserConnections(currentUser.uid)
+    if (connectionsResult.success && connectionsResult.data.length > 0) {
+      // Map connections to user format
+      const connectionUsers = connectionsResult.data.map((conn) => ({
+        id: conn.userId,
+        name: conn.userDetails?.displayName || conn.userDetails?.name || 'Unknown',
+        email: conn.userDetails?.email || '',
+        role: conn.role,
+      }))
+      setUsers(connectionUsers)
+      if (connectionUsers.length > 0 && !selectedUser) {
+        setSelectedUser(connectionUsers[0].id)
+      }
+      return
+    }
+
+    // Fallback to role-based loading if no connections
     let result
     if (userRole === 'doctor') {
       result = await getAllPatients()
-    } else {
+    } else if (userRole === 'patient') {
+      // Patients should only see their assigned doctor
+      const patientResult = await getPatientByEmail(currentUser.email)
+      if (patientResult.success && patientResult.data.assignedDoctor) {
+        const doctorResult = await getDoctor(patientResult.data.assignedDoctor)
+        if (doctorResult.success) {
+          // Find the doctor's user ID by matching email
+          const allUsersResult = await getAllUsers()
+          if (allUsersResult.success) {
+            const doctorUser = allUsersResult.data.find(
+              (u) => u.email === doctorResult.data.email && u.role === 'doctor'
+            )
+            if (doctorUser) {
+              setUsers([{ ...doctorUser, name: doctorResult.data.name }])
+              if (!selectedUser) {
+                setSelectedUser(doctorUser.uid)
+              }
+              return
+            }
+          }
+        }
+      }
+      // If no assigned doctor, show all doctors (fallback)
       result = await getAllDoctors()
+      if (result.success) {
+        // Map doctors to user format by matching emails
+        const allUsersResult = await getAllUsers()
+        if (allUsersResult.success) {
+          const doctorUsers = result.data
+            .map((doctor) => {
+              const user = allUsersResult.data.find(
+                (u) => u.email === doctor.email && u.role === 'doctor'
+              )
+              return user ? { ...user, name: doctor.name } : null
+            })
+            .filter(Boolean)
+          setUsers(doctorUsers)
+          if (doctorUsers.length > 0 && !selectedUser) {
+            setSelectedUser(doctorUsers[0].uid)
+          }
+          return
+        }
+      }
+    } else {
+      // Admin can see all
+      const [doctorsResult, patientsResult] = await Promise.all([
+        getAllDoctors(),
+        getAllPatients(),
+      ])
+      const allUsers = [
+        ...(doctorsResult.success ? doctorsResult.data : []),
+        ...(patientsResult.success ? patientsResult.data : []),
+      ]
+      setUsers(allUsers)
+      if (allUsers.length > 0 && !selectedUser) {
+        setSelectedUser(allUsers[0].id)
+      }
+      return
     }
+
     if (result.success) {
       setUsers(result.data)
       if (result.data.length > 0 && !selectedUser) {
