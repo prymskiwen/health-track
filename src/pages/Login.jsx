@@ -33,6 +33,14 @@ export default function Login() {
     return null
   }
 
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value)
+  }
+
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -147,7 +155,7 @@ export default function Login() {
                 label="Email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={handleEmailChange}
                 required
                 sx={{ mb: 2.5 }}
               />
@@ -156,7 +164,7 @@ export default function Login() {
                 label="Password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={handlePasswordChange}
                 required
                 sx={{ mb: 3 }}
               />

@@ -1,9 +1,9 @@
 import { Box, Card, CardContent, Typography, Chip } from '@mui/material'
 import { Email, Phone, Person, LocationOn, LocalHospital } from '@mui/icons-material'
-import { Visibility, Edit, Delete, Assignment } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import UserAvatar from '../common/UserAvatar'
 import ActionsMenu from '../common/ActionsMenu'
+import { getPatientActions } from '../../utils/actions'
 
 /**
  * PatientCard component for displaying a single patient in card format
@@ -25,44 +25,16 @@ export default function PatientCard({
 }) {
   const navigate = useNavigate()
 
-  const actions = [
+  const actions = getPatientActions(
+    patient,
+    userRole,
     {
-      icon: <Visibility />,
-      label: 'View Reports',
-      onClick: () => navigate(`/reports/${patient.id}`),
-      color: 'primary',
-    },
-    ...(userRole === 'doctor' || userRole === 'admin'
-      ? [
-          ...(userRole === 'admin'
-            ? [
-                {
-                  icon: <Assignment />,
-                  label: 'Assign Doctor',
-                  onClick: () => onAssign(patient),
-                  color: 'secondary',
-                },
-              ]
-            : []),
-          {
-            icon: <Edit />,
-            label: 'Edit',
-            onClick: () => onEdit(patient),
-            color: 'success',
-          },
-          ...(userRole === 'admin'
-            ? [
-                {
-                  icon: <Delete />,
-                  label: 'Delete',
-                  onClick: () => onDelete(patient),
-                  color: 'error',
-                },
-              ]
-            : []),
-        ]
-      : []),
-  ]
+      onEdit,
+      onDelete,
+      onAssign,
+      onViewReports: (patient) => navigate(`/reports/${patient.id}`),
+    }
+  )
 
   return (
     <Card

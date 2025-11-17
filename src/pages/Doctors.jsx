@@ -26,11 +26,11 @@ export default function Doctors() {
     updateDoctor,
     deleteDoctor,
   } = useDoctors()
+  const [viewMode, setViewMode] = useState('grid')
   const [formOpen, setFormOpen] = useState(false)
   const [selectedDoctor, setSelectedDoctor] = useState(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [doctorToDelete, setDoctorToDelete] = useState(null)
-  const [viewMode, setViewMode] = useState('grid')
 
   const handleAdd = () => {
     setSelectedDoctor(null)
@@ -69,6 +69,14 @@ export default function Doctors() {
     }
   }
 
+  const handleFormClose = () => {
+    setFormOpen(false)
+    setSelectedDoctor(null)
+  }
+
+  const handleDeleteDialogClose = () => {
+    setDeleteDialogOpen(false)
+  }
 
   return (
     <Box>
@@ -116,15 +124,12 @@ export default function Doctors() {
 
       <DoctorForm
         open={formOpen}
-        onClose={() => {
-          setFormOpen(false)
-          setSelectedDoctor(null)
-        }}
+        onClose={handleFormClose}
         onSubmit={handleSubmit}
         initialData={selectedDoctor}
       />
 
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      <Dialog open={deleteDialogOpen} onClose={handleDeleteDialogClose}>
         <DialogTitle>Delete Doctor</DialogTitle>
         <DialogContent>
           <Typography>
@@ -133,7 +138,7 @@ export default function Doctors() {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleDeleteDialogClose}>Cancel</Button>
           <Button onClick={confirmDelete} color="error" variant="contained">
             Delete
           </Button>

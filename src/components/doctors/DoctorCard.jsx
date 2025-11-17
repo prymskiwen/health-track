@@ -1,8 +1,8 @@
 import { Box, Card, CardContent, Typography, Chip } from '@mui/material'
 import { Email, Phone, School, AccessTime } from '@mui/icons-material'
-import { Edit, Delete } from '@mui/icons-material'
 import UserAvatar from '../common/UserAvatar'
 import ActionsMenu from '../common/ActionsMenu'
+import { getDoctorActions } from '../../utils/actions'
 
 /**
  * DoctorCard component for displaying a single doctor in card format
@@ -27,20 +27,7 @@ export default function DoctorCard({ doctor, onEdit, onDelete }) {
     >
       <Box sx={{ position: 'absolute', top: 12, right: 12, zIndex: 1 }}>
         <ActionsMenu
-          actions={[
-            {
-              icon: <Edit />,
-              label: 'Edit',
-              onClick: () => onEdit(doctor),
-              color: 'primary',
-            },
-            {
-              icon: <Delete />,
-              label: 'Delete',
-              onClick: () => onDelete(doctor),
-              color: 'error',
-            },
-          ]}
+          actions={getDoctorActions(doctor, { onEdit, onDelete })}
         />
       </Box>
       <CardContent sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>

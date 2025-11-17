@@ -1,8 +1,8 @@
 import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, Chip } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
-import { Visibility, Edit, Delete, Assignment } from '@mui/icons-material'
 import UserAvatar from '../common/UserAvatar'
 import ActionsMenu from '../common/ActionsMenu'
+import { getPatientActions } from '../../utils/actions'
 
 /**
  * PatientsTable component for displaying patients in a table format
@@ -41,44 +41,16 @@ export default function PatientsTable({
         </TableHead>
         <TableBody>
           {patients.map((patient) => {
-            const actions = [
+            const actions = getPatientActions(
+              patient,
+              userRole,
               {
-                icon: <Visibility />,
-                label: 'View Reports',
-                onClick: () => navigate(`/reports/${patient.id}`),
-                color: 'primary',
-              },
-              ...(userRole === 'doctor' || userRole === 'admin'
-                ? [
-                    ...(userRole === 'admin'
-                      ? [
-                          {
-                            icon: <Assignment />,
-                            label: 'Assign Doctor',
-                            onClick: () => onAssign(patient),
-                            color: 'secondary',
-                          },
-                        ]
-                      : []),
-                    {
-                      icon: <Edit />,
-                      label: 'Edit',
-                      onClick: () => onEdit(patient),
-                      color: 'success',
-                    },
-                    ...(userRole === 'admin'
-                      ? [
-                          {
-                            icon: <Delete />,
-                            label: 'Delete',
-                            onClick: () => onDelete(patient),
-                            color: 'error',
-                          },
-                        ]
-                      : []),
-                  ]
-                : []),
-            ]
+                onEdit,
+                onDelete,
+                onAssign,
+                onViewReports: (patient) => navigate(`/reports/${patient.id}`),
+              }
+            )
 
             return (
               <TableRow key={patient.id} hover>

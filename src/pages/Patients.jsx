@@ -31,6 +31,7 @@ export default function Patients() {
     assignPatient,
   } = usePatients()
   const { doctors } = useDoctors({ autoLoad: userRole === 'admin' })
+  const [viewMode, setViewMode] = useState('grid')
   const [formOpen, setFormOpen] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -38,7 +39,6 @@ export default function Patients() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const [patientToAssign, setPatientToAssign] = useState(null)
   const [selectedDoctor, setSelectedDoctor] = useState('')
-  const [viewMode, setViewMode] = useState('grid')
 
   const handleAdd = () => {
     setSelectedPatient(null)
@@ -81,6 +81,37 @@ export default function Patients() {
     setPatientToAssign(patient)
     setSelectedDoctor(patient.assignedDoctor || '')
     setAssignDialogOpen(true)
+  }
+
+  const handleAssignConfirm = async () => {
+    if (patientToAssign) {
+      const result = await assignPatient(
+        patientToAssign.id,
+        selectedDoctor || null
+      )
+      if (result.success) {
+        setAssignDialogOpen(false)
+        setPatientToAssign(null)
+        setSelectedDoctor('')
+      }
+    }
+  }
+
+  const handleFormClose = () => {
+    setFormOpen(false)
+    setSelectedPatient(null)
+  }
+
+  const handleDeleteDialogClose = () => {
+    setDeleteDialogOpen(false)
+  }
+
+  const handleAssignDialogClose = () => {
+    setAssignDialogOpen(false)
+  }
+
+  const handleSelectedDoctorChange = (e) => {
+    setSelectedDoctor(e.target.value)
   }
 
   return (
@@ -135,15 +166,12 @@ export default function Patients() {
 
       <PatientForm
         open={formOpen}
-        onClose={() => {
-          setFormOpen(false)
-          setSelectedPatient(null)
-        }}
+        onClose={handleFormClose}
         onSubmit={handleSubmit}
         initialData={selectedPatient}
       />
 
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      <Dialog open={deleteDialogOpen} onClose={handleDeleteDialogClose}>
         <DialogTitle>Delete Patient</DialogTitle>
         <DialogContent>
           <Typography>
@@ -152,14 +180,14 @@ export default function Patients() {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleDeleteDialogClose}>Cancel</Button>
           <Button onClick={confirmDelete} color="error" variant="contained">
             Delete
           </Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog open={assignDialogOpen} onClose={() => setAssignDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={assignDialogOpen} onClose={handleAssignDialogClose} maxWidth="sm" fullWidth>
         <DialogTitle>Assign Patient to Doctor</DialogTitle>
         <DialogContent>
           <TextField
@@ -167,7 +195,7 @@ export default function Patients() {
             select
             label="Select Doctor"
             value={selectedDoctor}
-            onChange={(e) => setSelectedDoctor(e.target.value)}
+            onChange={handleSelectedDoctorChange}
             sx={{ mt: 2 }}
           >
             <MenuItem value="">None</MenuItem>
@@ -179,23 +207,8 @@ export default function Patients() {
           </TextField>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAssignDialogOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={async () => {
-              if (patientToAssign) {
-                const result = await assignPatient(
-                  patientToAssign.id,
-                  selectedDoctor || null
-                )
-                if (result.success) {
-                  setAssignDialogOpen(false)
-                  setPatientToAssign(null)
-                  setSelectedDoctor('')
-                }
-              }
-            }}
-          >
+          <Button onClick={handleAssignDialogClose}>Cancel</Button>
+          <Button variant="contained" onClick={handleAssignConfirm}>
             Assign
           </Button>
         </DialogActions>

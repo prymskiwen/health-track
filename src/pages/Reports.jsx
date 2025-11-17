@@ -72,6 +72,22 @@ export default function Charts() {
     }
   }, [selectedPatientId, userRole, currentUser, patients, navigate])
 
+  const handleBack = () => {
+    navigate('/patients')
+  }
+
+  const handleAddDataClick = () => {
+    setFormOpen(true)
+  }
+
+  const handlePatientChange = (e) => {
+    setSelectedPatientId(e.target.value)
+  }
+
+  const handleFormClose = () => {
+    setFormOpen(false)
+  }
+
   const handleAddData = async (formData) => {
     const result = await addHealthData(formData)
     if (result.success) {
@@ -90,7 +106,7 @@ export default function Charts() {
           {userRole !== 'patient' && (
             <Button
               startIcon={<ArrowBack />}
-              onClick={() => navigate('/patients')}
+              onClick={handleBack}
             >
               Back
             </Button>
@@ -103,7 +119,7 @@ export default function Charts() {
           <Button
             variant="contained"
             startIcon={<Add />}
-            onClick={() => setFormOpen(true)}
+            onClick={handleAddDataClick}
           >
             Add Health Data
           </Button>
@@ -116,7 +132,7 @@ export default function Charts() {
           <Select
             value={selectedPatientId}
             label="Select Patient"
-            onChange={(e) => setSelectedPatientId(e.target.value)}
+            onChange={handlePatientChange}
           >
             {patients.map((patient) => (
               <MenuItem key={patient.id} value={patient.id}>
@@ -170,7 +186,7 @@ export default function Charts() {
 
       <HealthDataForm
         open={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={handleFormClose}
         onSubmit={handleAddData}
       />
     </Box>

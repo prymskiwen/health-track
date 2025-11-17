@@ -28,6 +28,14 @@ export default function ActionsMenu({ actions = [], size = 'small' }) {
     handleClose()
   }
 
+  const handleMenuClick = (e) => {
+    e.stopPropagation()
+  }
+
+  const handleMenuItemClick = (action) => {
+    handleAction(action)
+  }
+
   if (actions.length === 0) {
     return null
   }
@@ -69,7 +77,7 @@ export default function ActionsMenu({ actions = [], size = 'small' }) {
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        onClick={(e) => e.stopPropagation()}
+        onClick={handleMenuClick}
         anchorOrigin={{
           vertical: 'bottom',
           horizontal: 'right',
@@ -109,7 +117,7 @@ export default function ActionsMenu({ actions = [], size = 'small' }) {
         {actions.map((action, index) => (
           <MenuItem
             key={index}
-            onClick={() => handleAction(action)}
+            onClick={() => handleMenuItemClick(action)}
             disabled={action.disabled}
             sx={{
               '&:hover': {

@@ -1,7 +1,7 @@
 import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, Chip } from '@mui/material'
-import { Edit, Delete } from '@mui/icons-material'
 import UserAvatar from '../common/UserAvatar'
 import ActionsMenu from '../common/ActionsMenu'
+import { getDoctorActions } from '../../utils/actions'
 
 /**
  * DoctorsTable component for displaying doctors in a table format
@@ -71,20 +71,7 @@ export default function DoctorsTable({ doctors, onEdit, onDelete }) {
               </TableCell>
               <TableCell align="right">
                 <ActionsMenu
-                  actions={[
-                    {
-                      icon: <Edit />,
-                      label: 'Edit',
-                      onClick: () => onEdit(doctor),
-                      color: 'primary',
-                    },
-                    {
-                      icon: <Delete />,
-                      label: 'Delete',
-                      onClick: () => onDelete(doctor),
-                      color: 'error',
-                    },
-                  ]}
+                  actions={getDoctorActions(doctor, { onEdit, onDelete })}
                 />
               </TableCell>
             </TableRow>

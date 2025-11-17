@@ -205,6 +205,33 @@ export default function Connections() {
     }
   }
 
+  const handleTabChange = (e, newValue) => {
+    setTabValue(newValue)
+  }
+
+  const handleChatClick = (userId) => {
+    navigate(`/chat?userId=${userId}`)
+  }
+
+  const handleConnectClick = (user) => {
+    setSelectedUser(user)
+    setRequestDialogOpen(true)
+  }
+
+  const handleRequestDialogClose = () => {
+    setRequestDialogOpen(false)
+    setSelectedUser(null)
+    setMessage('')
+  }
+
+  const handleMessageChange = (e) => {
+    setMessage(e.target.value)
+  }
+
+  const handleRequestDialogCancel = () => {
+    setRequestDialogOpen(false)
+  }
+
   const getRoleIcon = (role) => {
     switch (role) {
       case 'admin':
@@ -236,6 +263,18 @@ export default function Connections() {
     const userName = user.displayName || user.name || 'Unknown User'
     const userEmail = user.email || ''
     const userRoleType = user.role || 'patient'
+
+    const handleChatButtonClick = () => {
+      handleChatClick(userId)
+    }
+
+    const handleRemoveButtonClick = () => {
+      handleRemoveConnection(user.connectionId)
+    }
+
+    const handleConnectButtonClick = () => {
+      handleConnectClick(user)
+    }
 
     return (
       <Card key={userId} sx={{ height: '100%' }}>
@@ -278,13 +317,13 @@ export default function Connections() {
                   <Button
                     fullWidth
                     variant="outlined"
-                    onClick={() => navigate(`/chat?userId=${userId}`)}
+                    onClick={handleChatButtonClick}
                   >
                     Chat
                   </Button>
                   <IconButton
                     color="error"
-                    onClick={() => handleRemoveConnection(user.connectionId)}
+                    onClick={handleRemoveButtonClick}
                   >
                     <Close />
                   </IconButton>
@@ -296,10 +335,7 @@ export default function Connections() {
                   fullWidth
                   variant="contained"
                   startIcon={<PersonAdd />}
-                  onClick={() => {
-                    setSelectedUser(user)
-                    setRequestDialogOpen(true)
-                  }}
+                  onClick={handleConnectButtonClick}
                 >
                   Connect
                 </Button>
@@ -334,7 +370,7 @@ export default function Connections() {
 
       <Tabs
         value={tabValue}
-        onChange={(e, newValue) => setTabValue(newValue)}
+        onChange={handleTabChange}
         sx={{ mb: 3 }}
       >
         <Tab label="All Users" />
@@ -394,40 +430,50 @@ export default function Connections() {
                   <Alert severity="info">No pending requests</Alert>
                 </Grid>
               ) : (
-                pendingRequests.map((request) => (
-                  <Grid item xs={12} sm={6} md={4} key={request.id}>
-                    <Card>
-                      <CardContent>
-                        <Typography variant="h6" gutterBottom>
-                          Connection Request
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                          From: {request.fromUserId}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-                          <Button
-                            variant="contained"
-                            color="success"
-                            startIcon={<Check />}
-                            onClick={() => handleAcceptRequest(request.id)}
-                            fullWidth
-                          >
-                            Accept
-                          </Button>
-                          <Button
-                            variant="outlined"
-                            color="error"
-                            startIcon={<Close />}
-                            onClick={() => handleRejectRequest(request.id)}
-                            fullWidth
-                          >
-                            Reject
-                          </Button>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))
+                pendingRequests.map((request) => {
+                  const handleAcceptClick = () => {
+                    handleAcceptRequest(request.id)
+                  }
+
+                  const handleRejectClick = () => {
+                    handleRejectRequest(request.id)
+                  }
+
+                  return (
+                    <Grid item xs={12} sm={6} md={4} key={request.id}>
+                      <Card>
+                        <CardContent>
+                          <Typography variant="h6" gutterBottom>
+                            Connection Request
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            From: {request.fromUserId}
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                            <Button
+                              variant="contained"
+                              color="success"
+                              startIcon={<Check />}
+                              onClick={handleAcceptClick}
+                              fullWidth
+                            >
+                              Accept
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              startIcon={<Close />}
+                              onClick={handleRejectClick}
+                              fullWidth
+                            >
+                              Reject
+                            </Button>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  )
+                })
               )}
             </Grid>
           )}
@@ -462,11 +508,7 @@ export default function Connections() {
 
       <Dialog
         open={requestDialogOpen}
-        onClose={() => {
-          setRequestDialogOpen(false)
-          setSelectedUser(null)
-          setMessage('')
-        }}
+        onClose={handleRequestDialogClose}
         maxWidth="sm"
         fullWidth
       >
@@ -481,12 +523,12 @@ export default function Connections() {
             rows={3}
             label="Message (Optional)"
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={handleMessageChange}
             sx={{ mt: 2 }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRequestDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleRequestDialogCancel}>Cancel</Button>
           <Button variant="contained" onClick={handleSendRequest}>
             Send Request
           </Button>

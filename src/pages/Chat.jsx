@@ -156,6 +156,21 @@ export default function Chat() {
     }
   }
 
+  const handleSelectedUserChange = (e) => {
+    setSelectedUser(e.target.value)
+  }
+
+  const handleNewMessageChange = (e) => {
+    setNewMessage(e.target.value)
+  }
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedUser) return
 
@@ -192,7 +207,7 @@ export default function Chat() {
               <Select
                 value={selectedUser}
                 label="Select User"
-                onChange={(e) => setSelectedUser(e.target.value)}
+                onChange={handleSelectedUserChange}
               >
                 {users.map((user) => (
                   <MenuItem key={user.id} value={user.id}>
@@ -268,13 +283,8 @@ export default function Chat() {
                 fullWidth
                 placeholder="Type a message..."
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    handleSendMessage()
-                  }
-                }}
+                onChange={handleNewMessageChange}
+                onKeyPress={handleKeyPress}
               />
               <IconButton
                 color="primary"
