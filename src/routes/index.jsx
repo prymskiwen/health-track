@@ -6,7 +6,7 @@ import Register from '../pages/Register'
 import Dashboard from '../pages/Dashboard'
 import Doctors from '../pages/Doctors'
 import Patients from '../pages/Patients'
-import Charts from '../pages/Charts'
+import Reports from '../pages/Reports'
 import Chat from '../pages/Chat'
 import Connections from '../pages/Connections'
 
@@ -41,7 +41,7 @@ export default function AppRoutes() {
       <Route
         path="/doctors"
         element={
-          <ProtectedRoute allowedRoles={['admin', 'doctor']}>
+          <ProtectedRoute allowedRoles={['admin']}>
             <Layout>
               <Doctors />
             </Layout>
@@ -59,21 +59,21 @@ export default function AppRoutes() {
         }
       />
       <Route
-        path="/charts"
+        path="/reports"
         element={
           <ProtectedRoute>
             <Layout>
-              <Charts />
+              <Reports />
             </Layout>
           </ProtectedRoute>
         }
       />
       <Route
-        path="/charts/:patientId"
+        path="/reports/:patientId"
         element={
           <ProtectedRoute>
             <Layout>
-              <Charts />
+              <Reports />
             </Layout>
           </ProtectedRoute>
         }

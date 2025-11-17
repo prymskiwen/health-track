@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Grid, Card, CardContent, Typography, Box, LinearProgress } from '@mui/material'
+import { Grid, Typography, Box, LinearProgress } from '@mui/material'
 import {
   People,
   LocalHospital,
   Chat,
   Assessment,
-  TrendingUp,
 } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext'
 import { getAllDoctors, getAllPatients } from '../services/userService'
+import StatsCard from '../components/common/StatsCard'
 
 export default function Dashboard() {
   const { userRole, currentUser } = useAuth()
@@ -43,7 +43,7 @@ export default function Dashboard() {
       icon: <LocalHospital />,
       gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
       iconBg: 'rgba(99, 102, 241, 0.2)',
-      show: userRole === 'doctor',
+      show: userRole === 'admin',
     },
     {
       title: 'Patients',
@@ -89,7 +89,7 @@ export default function Dashboard() {
           Welcome back, {currentUser?.displayName?.split(' ')[0] || 'User'}!
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Here's an overview of your hospital management system
+          Here&apos;s an overview of your hospital management system
         </Typography>
       </Box>
 
@@ -100,75 +100,14 @@ export default function Dashboard() {
           {statCards
             .filter((card) => card.show)
             .map((card, index) => (
-              <Grid item xs={12} sm={6} md={6} lg={3} key={card.title}>
-                <Card
-                  sx={{
-                    position: 'relative',
-                    overflow: 'hidden',
-                    '&::before': {
-                      content: '""',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: '4px',
-                      background: card.gradient,
-                    },
-                  }}
-                >
-                  <CardContent sx={{ p: 3 }}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        justifyContent: 'space-between',
-                        mb: 2,
-                      }}
-                    >
-                      <Box>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ mb: 1, fontWeight: 500 }}
-                        >
-                          {card.title}
-                        </Typography>
-                        <Typography
-                          variant="h3"
-                          sx={{
-                            fontWeight: 700,
-                            background: card.gradient,
-                            backgroundClip: 'text',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                          }}
-                        >
-                          {card.value}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          width: 56,
-                          height: 56,
-                          borderRadius: 2,
-                          background: card.iconBg,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'white',
-                        }}
-                      >
-                        {card.icon}
-                      </Box>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <TrendingUp sx={{ fontSize: 16, color: '#10b981' }} />
-                      <Typography variant="caption" color="text.secondary">
-                        System operational
-                      </Typography>
-                    </Box>
-                  </CardContent>
-                </Card>
+              <Grid item xs={12} sm={6} md={6} lg={3} key={index}>
+                <StatsCard
+                  title={card.title}
+                  value={card.value}
+                  icon={card.icon}
+                  gradient={card.gradient}
+                  iconBg={card.iconBg}
+                />
               </Grid>
             ))}
         </Grid>

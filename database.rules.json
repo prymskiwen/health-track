@@ -8,7 +8,7 @@
           ".read": "auth != null && ($chatId.contains(auth.uid))",
           ".write": "auth != null && ($chatId.contains(auth.uid))",
           "$messageId": {
-            ".validate": "newData.hasChildren(['senderId', 'receiverId', 'message', 'senderRole', 'timestamp']) && newData.child('senderId').val() == auth.uid"
+            ".validate": "newData.hasChildren(['senderId', 'receiverId', 'message', 'senderRole', 'timestamp']) && newData.child('senderId').val() == auth.uid && newData.child('senderId').val() != null && newData.child('receiverId').val() != null && newData.child('message').val() != null && newData.child('timestamp').val() != null"
           }
         }
       }

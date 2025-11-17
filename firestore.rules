@@ -7,30 +7,51 @@ service cloud.firestore {
       return request.auth != null;
     }
     
+    // Helper function to get user data
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
     // Helper function to check if user is an admin
     function isAdmin() {
       return isAuthenticated() && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+             getUserData().role == 'admin';
     }
     
     // Helper function to check if user is a doctor
     function isDoctor() {
       return isAuthenticated() && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'doctor';
+             getUserData().role == 'doctor';
     }
     
     // Helper function to check if user is a patient
     function isPatient() {
       return isAuthenticated() && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'patient';
+             getUserData().role == 'patient';
     }
     
     // Helper function to check if user owns the resource
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Helper function to check if user's email matches the document email
+    // Used when creating/updating doctor or patient records
+    function emailMatches() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             request.resource.data.email == getUserData().email;
+    }
+    
+    // Helper function to check if patient email matches user email
+    // Used when reading patient records
+    function isOwnPatientRecord() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             resource.data.email == getUserData().email;
     }
     
     // Users collection - users can read/write their own data
@@ -41,36 +62,118 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && (isOwner(userId) || isAdmin());
     }
     
-    // Doctors collection - doctors and admins can manage
+    // Doctors collection
     match /doctors/{doctorId} {
+      // Anyone authenticated can read doctors
       allow read: if isAuthenticated();
-      allow create: if isDoctor() || isAdmin();
-      allow update: if isDoctor() || isAdmin();
+      
+      // Allow creation if:
+      // 1. User is an admin, OR
+      // 2. User is creating their own record during registration (email matches)
+      allow create: if isAuthenticated() && (
+        isAdmin() || 
+        emailMatches()
+      );
+      
+      // Allow update if:
+      // 1. User is an admin, OR
+      // 2. User is updating their own record (email matches)
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        (emailMatches() && resource.data.email == request.resource.data.email)
+      );
+      
+      // Only admins can delete
       allow delete: if isAdmin();
     }
     
     // Patients collection
     match /patients/{patientId} {
-      allow read: if isAuthenticated() && (isDoctor() || isAdmin() || isOwner(patientId));
-      allow create: if isDoctor() || isAdmin();
-      allow update: if isDoctor() || isAdmin();
+      // Allow read if:
+      // 1. User is a doctor or admin, OR
+      // 2. User is reading their own record (email matches)
+      allow read: if isAuthenticated() && (
+        isDoctor() || 
+        isAdmin() || 
+        isOwnPatientRecord()
+      );
+      
+      // Allow creation if:
+      // 1. User is an admin, OR
+      // 2. User is creating their own record during registration (email matches)
+      allow create: if isAuthenticated() && (
+        isAdmin() || 
+        emailMatches()
+      );
+      
+      // Allow update if:
+      // 1. Admin can update anything (including assignedDoctor)
+      // 2. Doctor can update but cannot change assignedDoctor field
+      // 3. User can update their own record but cannot change assignedDoctor field
+      allow update: if isAuthenticated() && (
+        // Admin can update anything
+        isAdmin() ||
+        // Doctor can update but assignedDoctor must remain unchanged
+        (isDoctor() && 
+         (resource.data.assignedDoctor == request.resource.data.assignedDoctor || 
+          !('assignedDoctor' in request.resource.data))) ||
+        // User updating own record but assignedDoctor must remain unchanged
+        (emailMatches() && 
+         resource.data.email == request.resource.data.email &&
+         (resource.data.assignedDoctor == request.resource.data.assignedDoctor || 
+          !('assignedDoctor' in request.resource.data)))
+      );
+      
+      // Only admins can delete
       allow delete: if isAdmin();
       
       // Patient health data subcollection
       match /healthData/{healthDataId} {
-        allow read: if isAuthenticated() && (isDoctor() || isAdmin() || isOwner(patientId));
-        allow create: if isDoctor() || isAdmin();
-        allow update: if isDoctor() || isAdmin();
-        allow delete: if isDoctor() || isAdmin();
+        // Allow read if:
+        // 1. User is a doctor or admin, OR
+        // 2. User is reading their own patient record's health data
+        allow read: if isAuthenticated() && (
+          isDoctor() || 
+          isAdmin() || 
+          isOwnPatientRecord()
+        );
+        
+        // Only doctors and admins can create health data
+        allow create: if isAuthenticated() && (isDoctor() || isAdmin());
+        
+        // Only doctors and admins can update health data
+        allow update: if isAuthenticated() && (isDoctor() || isAdmin());
+        
+        // Only doctors and admins can delete health data
+        allow delete: if isAuthenticated() && (isDoctor() || isAdmin());
       }
     }
     
     // Connections collection
     match /connections/{connectionId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
-      allow delete: if isAuthenticated();
+      // Users can read their own connections or connections where they are involved
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.connectedUserId == request.auth.uid
+      );
+      
+      // Users can create connections
+      allow create: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid ||
+        request.resource.data.connectedUserId == request.auth.uid
+      );
+      
+      // Users can update their own connections
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.connectedUserId == request.auth.uid
+      );
+      
+      // Users can delete their own connections
+      allow delete: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.connectedUserId == request.auth.uid
+      );
     }
   }
 }

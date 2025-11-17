@@ -22,7 +22,7 @@ export const MENU_ITEMS = [
     text: "Doctors",
     icon: People,
     path: "/doctors",
-    roles: ["admin", "doctor"],
+    roles: ["admin"],
   },
   {
     text: "Patients",
@@ -31,9 +31,9 @@ export const MENU_ITEMS = [
     roles: ["admin", "doctor"],
   },
   {
-    text: "Charts",
+    text: "Reports",
     icon: BarChart,
-    path: "/charts",
+    path: "/reports",
     patientLabel: "My Data", // Custom label for patients
   },
   { text: "Connections", icon: ConnectWithoutContact, path: "/connections" },

@@ -185,7 +185,6 @@ export default function Register() {
               >
                 <MenuItem value="patient">Patient</MenuItem>
                 <MenuItem value="doctor">Doctor</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
               </TextField>
               <TextField
                 fullWidth
