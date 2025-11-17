@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user is a doctor
+    function isDoctor() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'doctor';
+    }
+    
+    // Helper function to check if user is a patient
+    function isPatient() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'patient';
+    }
+    
+    // Helper function to check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Users collection - users can read/write their own data
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isDoctor());
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isAuthenticated() && isOwner(userId);
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+    
+    // Doctors collection - only doctors can manage
+    match /doctors/{doctorId} {
+      allow read: if isAuthenticated();
+      allow create: if isDoctor();
+      allow update: if isDoctor();
+      allow delete: if isDoctor();
+    }
+    
+    // Patients collection
+    match /patients/{patientId} {
+      allow read: if isAuthenticated() && (isDoctor() || isOwner(patientId));
+      allow create: if isDoctor();
+      allow update: if isDoctor();
+      allow delete: if isDoctor();
+      
+      // Patient health data subcollection
+      match /healthData/{healthDataId} {
+        allow read: if isAuthenticated() && (isDoctor() || isOwner(patientId));
+        allow create: if isDoctor();
+        allow update: if isDoctor();
+        allow delete: if isDoctor();
+      }
+    }
+  }
+}
+

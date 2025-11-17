@@ -1,0 +1,20 @@
+{
+  "rules": {
+    "chats": {
+      "$chatId": {
+        ".read": "auth != null && ($chatId.contains(auth.uid))",
+        ".write": "auth != null && ($chatId.contains(auth.uid))",
+        "messages": {
+          ".read": "auth != null && ($chatId.contains(auth.uid))",
+          ".write": "auth != null && ($chatId.contains(auth.uid))",
+          "$messageId": {
+            ".validate": "newData.hasChildren(['senderId', 'receiverId', 'message', 'senderRole', 'timestamp']) && newData.child('senderId').val() == auth.uid"
+          }
+        }
+      }
+    },
+    ".read": false,
+    ".write": false
+  }
+}
+
