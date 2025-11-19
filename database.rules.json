@@ -9,9 +9,32 @@
           ".write": "auth != null && ($chatId.contains(auth.uid))",
           ".indexOn": ["timestamp"],
           "$messageId": {
-            ".validate": "newData.hasChildren(['senderId', 'receiverId', 'message', 'senderRole', 'timestamp']) && newData.child('senderId').val() == auth.uid && newData.child('senderId').val() != null && newData.child('receiverId').val() != null && newData.child('message').val() != null && newData.child('timestamp').val() != null"
+            ".validate": "(!data.exists() && newData.hasChildren(['senderId', 'receiverId', 'message', 'senderRole', 'timestamp']) && newData.child('senderId').val() == auth.uid) || (data.exists() && newData.child('senderId').val() == data.child('senderId').val() && newData.child('receiverId').val() == data.child('receiverId').val() && newData.child('message').val() == data.child('message').val() && newData.child('senderRole').val() == data.child('senderRole').val() && newData.child('timestamp').val() == data.child('timestamp').val())",
+            "read": {
+              ".validate": "newData.val() == true || newData.val() == false"
+            },
+            "readAt": {
+              ".validate": "true"
+            }
           }
+        },
+        "typing": {
+          ".read": "auth != null && ($chatId.contains(auth.uid))",
+          ".write": "auth != null && ($chatId.contains(auth.uid))",
+          "$userId": {
+            ".validate": "$userId == auth.uid"
+          }
+        },
+        "unreadCount": {
+          ".read": "auth != null && ($chatId.contains(auth.uid))",
+          ".write": "auth != null && ($chatId.contains(auth.uid))"
         }
+      }
+    },
+    "presence": {
+      "$userId": {
+        ".read": "auth != null",
+        ".write": "$userId == auth.uid"
       }
     },
     ".read": false,
