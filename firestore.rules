@@ -54,9 +54,9 @@ service cloud.firestore {
              resource.data.email == getUserData().email;
     }
     
-    // Users collection - users can read/write their own data
+    // Users collection - all authenticated users can read for connections
     match /users/{userId} {
-      allow read: if isAuthenticated() && (isOwner(userId) || isDoctor() || isAdmin());
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isOwner(userId);
       allow update: if isAuthenticated() && (isOwner(userId) || isAdmin());
       allow delete: if isAuthenticated() && (isOwner(userId) || isAdmin());
@@ -151,28 +151,58 @@ service cloud.firestore {
     
     // Connections collection
     match /connections/{connectionId} {
+      // Helper function to check if user is involved in the connection
+      function isInvolved() {
+        return isAuthenticated() && (
+          resource.data.user1 == request.auth.uid ||
+          resource.data.user2 == request.auth.uid
+        );
+      }
+      
+      // Helper function to check if user is involved in the new connection
+      function isInvolvedInNew() {
+        return isAuthenticated() && (
+          request.resource.data.user1 == request.auth.uid ||
+          request.resource.data.user2 == request.auth.uid
+        );
+      }
+      
       // Users can read their own connections or connections where they are involved
+      // Allow read if document doesn't exist (for checking before create) or if user is involved
       allow read: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid ||
-        resource.data.connectedUserId == request.auth.uid
+        !resource.exists ||
+        resource.data.user1 == request.auth.uid ||
+        resource.data.user2 == request.auth.uid
       );
       
-      // Users can create connections
-      allow create: if isAuthenticated() && (
-        request.resource.data.userId == request.auth.uid ||
-        request.resource.data.connectedUserId == request.auth.uid
-      );
+      // Users can create connections if they are one of the users in the connection
+      // and they are the one requesting (requestedBy must be their uid)
+      allow create: if isAuthenticated() && 
+        (request.resource.data.user1 == request.auth.uid ||
+         request.resource.data.user2 == request.auth.uid) &&
+        request.resource.data.requestedBy == request.auth.uid &&
+        request.resource.data.status == 'pending';
       
-      // Users can update their own connections
+      // Users can update connections if they are involved
+      // Only allow status updates (accept/reject)
       allow update: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid ||
-        resource.data.connectedUserId == request.auth.uid
+        (resource.data.user1 == request.auth.uid ||
+         resource.data.user2 == request.auth.uid) &&
+        // Only allow updating status and updatedAt fields
+        (!('user1' in request.resource.data) || request.resource.data.user1 == resource.data.user1) &&
+        (!('user2' in request.resource.data) || request.resource.data.user2 == resource.data.user2) &&
+        (!('user1Role' in request.resource.data) || request.resource.data.user1Role == resource.data.user1Role) &&
+        (!('user2Role' in request.resource.data) || request.resource.data.user2Role == resource.data.user2Role) &&
+        (!('requestedBy' in request.resource.data) || request.resource.data.requestedBy == resource.data.requestedBy) &&
+        (!('createdAt' in request.resource.data) || request.resource.data.createdAt == resource.data.createdAt) &&
+        // Status must be valid
+        request.resource.data.status in ['pending', 'accepted', 'rejected']
       );
       
       // Users can delete their own connections
       allow delete: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid ||
-        resource.data.connectedUserId == request.auth.uid
+        resource.data.user1 == request.auth.uid ||
+        resource.data.user2 == request.auth.uid
       );
     }
   }

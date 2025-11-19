@@ -8,7 +8,6 @@ import {
   IconButton,
   List,
   ListItem,
-  ListItemText,
   Paper,
   Select,
   MenuItem,
@@ -18,7 +17,6 @@ import {
 import { Send } from '@mui/icons-material'
 import { subscribeToMessages, sendMessage } from '../services/chatService'
 import {
-  getAllDoctors,
   getAllPatients,
   getPatientByEmail,
   getDoctor,
@@ -31,16 +29,95 @@ import { useSearchParams } from 'react-router-dom'
 
 export default function Chat() {
   const { currentUser, userRole } = useAuth()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [selectedUser, setSelectedUser] = useState(searchParams.get('userId') || '')
   const [users, setUsers] = useState([])
   const messagesEndRef = useRef(null)
 
+  const loadUsers = async () => {
+    // Load connections - chat is available for all connected users
+    const connectionsResult = await getUserConnections(currentUser.uid)
+    if (connectionsResult.success && connectionsResult.data.length > 0) {
+      // Map connections to user format
+      const connectionUsers = connectionsResult.data.map((conn) => ({
+        id: conn.userId,
+        uid: conn.userId,
+        name: conn.userDetails?.displayName || conn.userDetails?.name || 'Unknown',
+        email: conn.userDetails?.email || '',
+        role: conn.role,
+      }))
+      setUsers(connectionUsers)
+      if (connectionUsers.length > 0 && !selectedUser) {
+        setSelectedUser(connectionUsers[0].id || connectionUsers[0].uid)
+      }
+      return
+    }
+
+    // Fallback: For backward compatibility, also include assigned doctor/patient relationships
+    // This ensures existing doctor-patient chats still work
+    if (userRole === 'patient') {
+      // Patients can chat with their assigned doctor
+      const patientResult = await getPatientByEmail(currentUser.email)
+      if (patientResult.success && patientResult.data.assignedDoctor) {
+        const doctorResult = await getDoctor(patientResult.data.assignedDoctor)
+        if (doctorResult.success) {
+          const allUsersResult = await getAllUsers()
+          if (allUsersResult.success) {
+            const doctorUser = allUsersResult.data.find(
+              (u) => u.email === doctorResult.data.email && u.role === 'doctor'
+            )
+            if (doctorUser) {
+              setUsers([{ ...doctorUser, name: doctorResult.data.name }])
+              if (!selectedUser) {
+                setSelectedUser(doctorUser.uid)
+              }
+              return
+            }
+          }
+        }
+      }
+    } else if (userRole === 'doctor') {
+      // Doctors can chat with their assigned patients
+      const allPatientsResult = await getAllPatients()
+      if (allPatientsResult.success) {
+        const assignedPatients = allPatientsResult.data.filter(
+          (patient) => patient.assignedDoctor === currentUser.email
+        )
+        if (assignedPatients.length > 0) {
+          const allUsersResult = await getAllUsers()
+          if (allUsersResult.success) {
+            const patientUsers = assignedPatients
+              .map((patient) => {
+                const user = allUsersResult.data.find(
+                  (u) => u.email === patient.email && u.role === 'patient'
+                )
+                return user ? { ...user, name: patient.name } : null
+              })
+              .filter(Boolean)
+            if (patientUsers.length > 0) {
+              setUsers(patientUsers)
+              if (!selectedUser) {
+                setSelectedUser(patientUsers[0].uid)
+              }
+              return
+            }
+          }
+        }
+      }
+    }
+
+    // If no connections or assigned relationships, show empty state
+    setUsers([])
+  }
+
   useEffect(() => {
-    loadUsers()
-  }, [])
+    if (currentUser?.uid) {
+      loadUsers()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.uid, userRole])
 
   useEffect(() => {
     const userId = searchParams.get('userId')
@@ -65,96 +142,6 @@ export default function Chat() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
-
-  const loadUsers = async () => {
-    // First try to load connections
-    const connectionsResult = await getUserConnections(currentUser.uid)
-    if (connectionsResult.success && connectionsResult.data.length > 0) {
-      // Map connections to user format
-      const connectionUsers = connectionsResult.data.map((conn) => ({
-        id: conn.userId,
-        name: conn.userDetails?.displayName || conn.userDetails?.name || 'Unknown',
-        email: conn.userDetails?.email || '',
-        role: conn.role,
-      }))
-      setUsers(connectionUsers)
-      if (connectionUsers.length > 0 && !selectedUser) {
-        setSelectedUser(connectionUsers[0].id)
-      }
-      return
-    }
-
-    // Fallback to role-based loading if no connections
-    let result
-    if (userRole === 'doctor') {
-      result = await getAllPatients()
-    } else if (userRole === 'patient') {
-      // Patients should only see their assigned doctor
-      const patientResult = await getPatientByEmail(currentUser.email)
-      if (patientResult.success && patientResult.data.assignedDoctor) {
-        const doctorResult = await getDoctor(patientResult.data.assignedDoctor)
-        if (doctorResult.success) {
-          // Find the doctor's user ID by matching email
-          const allUsersResult = await getAllUsers()
-          if (allUsersResult.success) {
-            const doctorUser = allUsersResult.data.find(
-              (u) => u.email === doctorResult.data.email && u.role === 'doctor'
-            )
-            if (doctorUser) {
-              setUsers([{ ...doctorUser, name: doctorResult.data.name }])
-              if (!selectedUser) {
-                setSelectedUser(doctorUser.uid)
-              }
-              return
-            }
-          }
-        }
-      }
-      // If no assigned doctor, show all doctors (fallback)
-      result = await getAllDoctors()
-      if (result.success) {
-        // Map doctors to user format by matching emails
-        const allUsersResult = await getAllUsers()
-        if (allUsersResult.success) {
-          const doctorUsers = result.data
-            .map((doctor) => {
-              const user = allUsersResult.data.find(
-                (u) => u.email === doctor.email && u.role === 'doctor'
-              )
-              return user ? { ...user, name: doctor.name } : null
-            })
-            .filter(Boolean)
-          setUsers(doctorUsers)
-          if (doctorUsers.length > 0 && !selectedUser) {
-            setSelectedUser(doctorUsers[0].uid)
-          }
-          return
-        }
-      }
-    } else {
-      // Admin can see all
-      const [doctorsResult, patientsResult] = await Promise.all([
-        getAllDoctors(),
-        getAllPatients(),
-      ])
-      const allUsers = [
-        ...(doctorsResult.success ? doctorsResult.data : []),
-        ...(patientsResult.success ? patientsResult.data : []),
-      ]
-      setUsers(allUsers)
-      if (allUsers.length > 0 && !selectedUser) {
-        setSelectedUser(allUsers[0].id)
-      }
-      return
-    }
-
-    if (result.success) {
-      setUsers(result.data)
-      if (result.data.length > 0 && !selectedUser) {
-        setSelectedUser(result.data[0].id)
-      }
-    }
-  }
 
   const handleSelectedUserChange = (e) => {
     setSelectedUser(e.target.value)
@@ -200,22 +187,28 @@ export default function Chat() {
         <Card sx={{ width: 300, height: '100%' }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              {userRole === 'doctor' ? 'Patients' : 'Doctors'}
+              Connections
             </Typography>
-            <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel>Select User</InputLabel>
-              <Select
-                value={selectedUser}
-                label="Select User"
-                onChange={handleSelectedUserChange}
-              >
-                {users.map((user) => (
-                  <MenuItem key={user.id} value={user.id}>
-                    {user.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {users.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                No connections available. Connect with users to start chatting.
+              </Typography>
+            ) : (
+              <FormControl fullWidth sx={{ mt: 2 }}>
+                <InputLabel>Select User</InputLabel>
+                <Select
+                  value={selectedUser}
+                  label="Select User"
+                  onChange={handleSelectedUserChange}
+                >
+                  {users.map((user) => (
+                    <MenuItem key={user.id || user.uid} value={user.id || user.uid}>
+                      {user.name} ({user.role})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
           </CardContent>
         </Card>
 

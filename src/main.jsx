@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { ThemeProvider, CssBaseline } from '@mui/material'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext'
+import { SnackbarProvider } from './context/SnackbarContext'
 import theme from './theme'
 import './index.css'
 
@@ -18,7 +19,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <AuthProvider>
-          <App />
+          <SnackbarProvider>
+            <App />
+          </SnackbarProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>
